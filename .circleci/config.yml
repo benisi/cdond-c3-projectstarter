@@ -45,8 +45,7 @@ jobs:
           name: Run frontend test
           command: |
             cd frontend
-            npm run test
-                
+            npm run test                
   test-backend:
     docker:
       - image: circleci/node:13.8.0
