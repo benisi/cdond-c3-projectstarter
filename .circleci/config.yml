@@ -86,23 +86,13 @@ jobs:
           command: |
             cd backend
             npm audit fix --audit-level=critical --force
+     - slack/notify:
+          event: fail
+          mentions: '@EngineeringTeam'
+          template: basic_fail_1
       - slack/notify:
-          custom: |
-            {
-              "blocks": [
-                {
-                  "type": "section",
-                  "fields": [
-                    {
-                      "type": "plain_text",
-                      "text": "*This is a text notification*",
-                      "emoji": true
-                    }
-                  ]
-                }
-              ]
-            }
-          event: always
+          event: pass
+          template: success_tagged_deploy_1
 workflows:
   default:
     jobs:
@@ -114,6 +104,7 @@ workflows:
           requires: [build-backend]
       - scan-backend:
           requires: [build-backend]
+          context: Alx
       - scan-frontend:
           requires: [build-frontend]
      
