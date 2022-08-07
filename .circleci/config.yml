@@ -156,7 +156,7 @@ jobs:
               --query 'Reservations[*].Instances[*].PublicIpAddress' \
               --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --output text)
-
+            echo https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-BackendIP/${BACKEND_IP}
             curl --insecure -d -H "Content-Type: text/plain" --request POST https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-BackendIP/${BACKEND_IP}
             echo ${BACKEND_IP} >> .circleci/ansible/inventory.txt
       - persist_to_workspace:
@@ -182,7 +182,7 @@ jobs:
           name: Configure server
           command: |
             export ANSIBLE_HOST_KEY_CHECKING=False
-            ansible-playbook -i /tmp/.circleci/ansible/inventory.txt .circleci/ansible/configure-server.yml -vvvvv
+            ansible-playbook -i /tmp/.circleci/ansible/inventory.txt .circleci/ansible/configure-server.yml
       - destroy-environment
   run-migrations:
     docker:
