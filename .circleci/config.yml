@@ -19,6 +19,20 @@ commands:
           when: on_fail
           command: |
             aws cloudformation delete-stack --stack-name udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}
+  revert-migrations:
+    description: Revert the last migration only if it is successful
+    steps:
+      - run:
+          name: Revert migrations
+          when: on_fail
+          command: |
+            SUCCESS=$(curl -H "Content-Type: text/plain" --request GET https://keyvalue.immanuel.co/api/KeyVal/GetValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-DBMigrationStatus)
+            if [ ${SUCCESS} = "success" ];
+            then
+              cd ~/project/backend
+              npm i
+              npm run migrations:revert
+            fi
 
 jobs:
   build-frontend:
@@ -143,6 +157,7 @@ jobs:
               --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --output text)
 
+            curl -H "Content-Type: text/plain" --request POST https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-BackendIP/${BACKEND_IP}
             echo ${BACKEND_IP} >> .circleci/ansible/inventory.txt
       - persist_to_workspace:
           root: .circleci/ansible
@@ -169,6 +184,125 @@ jobs:
             export ANSIBLE_HOST_KEY_CHECKING=False
             ansible-playbook -i /tmp/.circleci/ansible/inventory.txt .circleci/ansible/configure-server.yml -vvvvv
       - destroy-environment
+  run-migrations:
+    docker:
+      - image: circleci/node:13.8.0
+        user: root
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            apt-get update
+            apt -y install awscli
+      - run:
+          name: Run migrations
+          command: |
+            cd backend
+            npm install
+            MIGRATIONS_OUTPUT=$(npm run migrations)
+      - run:
+          name: Send migration results to keyvalue.immanuel.co
+          command: |
+            echo ${MIGRATIONS_OUTPUT}
+            if grep -q "has been executed successfully" ${MIGRATIONS_OUTPUT}; then
+              curl -H "Content-Type: text/plain" --request POST https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-DBMigrationStatus/success
+            else
+              curl -H "Content-Type: text/plain" --request POST https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-DBMigrationStatus/failure
+              exit 1
+            fi
+      - destroy-environment
+  deploy-frontend:
+    docker:
+      - image: circleci/node:13.8.0
+        user: root
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            apt-get update
+            apt -y install awscli
+      - run:
+          name: Set env variables
+          command: |
+            BACKEND_IP=$(curl -H "Content-Type: text/plain" --request GET https://keyvalue.immanuel.co/api/KeyVal/GetValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-BackendIP)
+            export API_URL="http://${BACKEND_IP}:3030"
+            echo "${API_URL}"
+            echo API_URL=$API_URL >> "frontend/.env"
+            echo ENVIRONMENT=production  >> "frontend/.env"
+            echo NODE_ENV=production >> "frontend/.env"
+      - run:
+          name: Build frontend objects
+          command: |
+            cd frontend
+            npm i
+            npm run build
+      - run:
+          name: Deploy frontend objects
+          command: |
+            aws s3 sync frontend/dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7}
+      - destroy-environment
+      - revert-migrations
+
+  deploy-backend:
+    docker:
+      - image: cimg/python:3.10.0-node
+        user: root
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints: ["b0:48:09:34:9a:d7:d0:5e:c3:62:6b:e2:03:c6:41:2f"] # You can get this ID in the section where you registered the SSH Key
+      - attach_workspace:
+          at: /tmp/.circleci/ansible
+      - run:
+          name: install dependencies
+          command: |
+            sudo apt update
+            sudo apt install software-properties-common
+            sudo add-apt-repository --yes --update ppa:ansible/ansible
+            sudo apt install ansible
+            pip install awscli
+      - run:
+          name: install node modules
+          command: |
+            cd /root/project/backend
+            npm install
+      - run:
+          name: build backend dist
+          command: |
+            cd /root/project/backend
+            npm i
+            echo ENVIROMENT=development > ".env"
+            echo TYPEORM_CONNECTION=postgres >> ".env"
+            echo TYPEORM_MIGRATIONS_DIR=./src/migrations >> ".env"
+            echo TYPEORM_ENTITIES=./src/modules/domain/**/*.entity.ts >> ".env"
+            echo TYPEORM_MIGRATIONS=./src/migrations/*.ts >> ".env"
+            echo TYPEORM_HOST=$TYPEORM_HOST >> ".env"
+            echo TYPEORM_PORT=$TYPEORM_PORT >> ".env"
+            echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> ".env"
+            echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> ".env"
+            echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> ".env"
+            npm run build
+            npm run prestart:prod
+      - run:
+          name: build zip file
+          command: |
+            cd /root/project/
+            tar -zcvf api.tar.gz backend/
+            mv api.tar.gz ~/project/.circleci/ansible/roles/deploy/files/
+      - run:
+          name: add ansible config
+          command: |
+            echo "[ssh_connection]" > ansible.cfg
+            echo "scp_if_ssh=True" >> ansible.cfg
+      - run:
+          name: Deploy backend
+          command: |
+            echo $(curl -H "Content-Type: text/plain" --request GET https://keyvalue.immanuel.co/api/KeyVal/GetValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-BackendIP) >> .circleci/ansible/inventory.txt
+            ansible-playbook -i .circleci/ansible/inventory.txt .circleci/ansible/deploy-backend.yml
+      - destroy-environment
+      - revert-migrations
 workflows:
   default:
     jobs:
@@ -190,4 +324,10 @@ workflows:
               only: [master]
       - configure-infrastructure:
           requires: [deploy-infrastructure]
+      - run-migrations:
+          requires: [configure-infrastructure]
+      - deploy-frontend:
+          requires: [run-migrations]
+      - deploy-backend:
+          requires: [run-migrations]
      
