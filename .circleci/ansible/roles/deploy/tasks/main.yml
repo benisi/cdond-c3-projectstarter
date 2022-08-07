@@ -1,14 +1,26 @@
 
 
-- name: "create app directory"
-  file:
-    path: /home/ubuntu/backend
-    state: directory
+# - name: "create app directory"
+#   file:
+#     path: /home/ubuntu/backend
+#     state: directory
 
-- name: "move files to server"
-  become: true
-  copy:
-    src: /root/project/backend/api.tar.gz
-    dest: /home/ubuntu
-    remote_src: yes
-    mode: '0777'
+# - name: "move files to server"
+#   become: true
+#   copy:
+#     src: /root/project/backend/api.tar.gz
+#     dest: /home/ubuntu
+#     remote_src: yes
+#     mode: '0777'
+
+- name: "unarchive backend files"
+  unarchive:
+    src: api.tar.gz
+    dest: /home/ubuntu/
+
+- name: "executing node"
+  shell: |
+    cd /home/ubuntu/backend/dist
+    pm2 stop default
+    pm2 start npm --name 'udapeople' -- start
+    pm2 ls
