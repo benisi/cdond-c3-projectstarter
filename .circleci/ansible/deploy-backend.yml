@@ -4,7 +4,7 @@
   hosts: web
   user: ubuntu
   gather_facts: false
-   environment:
+  environment:
     ENVIRONMENT: 'production'
     TYPEORM_CONNECTION: "{{ lookup('env','TYPEORM_CONNECTION') }}"
     TYPEORM_ENTITIES: './src/modules/domain/**/*.entity.ts'
