@@ -162,9 +162,9 @@ jobs:
           name: Install dependencies
           command: |
             pip install awscli
-            sudo apt-get install openssh-server
-            sudo systemctl enable ssh
-            sudo systemctl start ssh
+            apt-get install openssh-server
+            systemctl enable ssh
+            systemctl start ssh
             apk add --update ansible
       - run:
           name: Configure server
