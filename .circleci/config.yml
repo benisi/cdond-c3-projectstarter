@@ -157,7 +157,7 @@ jobs:
               --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --output text)
 
-            curl -d -H "Content-Type: text/plain" --request POST https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-BackendIP/${BACKEND_IP}
+            curl -d -H "Content-Type: text/plain" --data ${BACKEND_IP} --request POST https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-BackendIP
             echo ${BACKEND_IP} >> .circleci/ansible/inventory.txt
       - persist_to_workspace:
           root: .circleci/ansible
@@ -218,9 +218,9 @@ jobs:
           command: |
             echo ${MIGRATIONS_OUTPUT}
             if grep -q "has been executed successfully" ${MIGRATIONS_OUTPUT}; then
-              curl -d -H "Content-Type: text/plain" --request POST https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-DBMigrationStatus/success
+              curl -d -H "Content-Type: text/plain" --data success --request POST https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-DBMigrationStatus
             else
-              curl -d -H "Content-Type: text/plain" --request POST https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-DBMigrationStatus/failure
+              curl -d -H "Content-Type: text/plain" --data failure --request POST https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-DBMigrationStatus
             fi
       - destroy-environment
   deploy-frontend:
