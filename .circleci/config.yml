@@ -237,7 +237,7 @@ jobs:
       - run:
           name: Set env variables
           command: |
-            BACKEND_IP=$(curl GET https://keyvalue.immanuel.co/api/KeyVal/GetValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-BackendIP)
+            BACKEND_IP=$(curl https://keyvalue.immanuel.co/api/KeyVal/GetValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-BackendIP)
             export API_URL="http://${BACKEND_IP}:3030"
             echo "${API_URL}"
             echo API_URL=$API_URL >> "frontend/.env"
