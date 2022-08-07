@@ -26,7 +26,7 @@ commands:
           name: Revert migrations
           when: on_fail
           command: |
-            SUCCESS=$(curl -H "Content-Type: text/plain" --request GET https://keyvalue.immanuel.co/api/KeyVal/GetValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-DBMigrationStatus)
+            SUCCESS=$(curl -d -H "Content-Type: text/plain" --request GET https://keyvalue.immanuel.co/api/KeyVal/GetValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-DBMigrationStatus)
             if [ ${SUCCESS} = "success" ];
             then
               cd ~/project/backend
@@ -157,7 +157,7 @@ jobs:
               --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --output text)
 
-            curl -H "Content-Type: text/plain" --request POST https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-BackendIP/${BACKEND_IP}
+            curl -d -H "Content-Type: text/plain" --request POST https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-BackendIP/${BACKEND_IP}
             echo ${BACKEND_IP} >> .circleci/ansible/inventory.txt
       - persist_to_workspace:
           root: .circleci/ansible
@@ -218,9 +218,9 @@ jobs:
           command: |
             echo ${MIGRATIONS_OUTPUT}
             if grep -q "has been executed successfully" ${MIGRATIONS_OUTPUT}; then
-              curl -H "Content-Type: text/plain" --request POST https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-DBMigrationStatus/success
+              curl -d -H "Content-Type: text/plain" --request POST https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-DBMigrationStatus/success
             else
-              curl -H "Content-Type: text/plain" --request POST https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-DBMigrationStatus/failure
+              curl -d -H "Content-Type: text/plain" --request POST https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-DBMigrationStatus/failure
               exit 1
             fi
       - destroy-environment
@@ -238,7 +238,7 @@ jobs:
       - run:
           name: Set env variables
           command: |
-            BACKEND_IP=$(curl -H "Content-Type: text/plain" --request GET https://keyvalue.immanuel.co/api/KeyVal/GetValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-BackendIP)
+            BACKEND_IP=$(curl -d -H "Content-Type: text/plain" --request GET https://keyvalue.immanuel.co/api/KeyVal/GetValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-BackendIP)
             export API_URL="http://${BACKEND_IP}:3030"
             echo "${API_URL}"
             echo API_URL=$API_URL >> "frontend/.env"
@@ -311,7 +311,7 @@ jobs:
       - run:
           name: Deploy backend
           command: |
-            echo $(curl -H "Content-Type: text/plain" --request GET https://keyvalue.immanuel.co/api/KeyVal/GetValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-BackendIP) >> .circleci/ansible/inventory.txt
+            echo $(curl -d -H "Content-Type: text/plain" --request GET https://keyvalue.immanuel.co/api/KeyVal/GetValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-BackendIP) >> .circleci/ansible/inventory.txt
             ansible-playbook -i .circleci/ansible/inventory.txt .circleci/ansible/deploy-backend.yml
       - destroy-environment
       - revert-migrations
