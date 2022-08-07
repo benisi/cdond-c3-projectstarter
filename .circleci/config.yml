@@ -221,7 +221,6 @@ jobs:
               curl --insecure -d -H "Content-Type: text/plain" --request POST https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-DBMigrationStatus/success
             else
               curl --insecure -d -H "Content-Type: text/plain" --request POST https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/tozkr10c/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-DBMigrationStatus/failure
-              exit 1
             fi
       - destroy-environment
   deploy-frontend:
