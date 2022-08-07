@@ -12,6 +12,7 @@ commands:
           name: Destroy frontend
           when: on_fail
           command: |
+            aws s3 rb s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --force
             aws cloudformation delete-stack --stack-name udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}
       - run:
           name: Destroy backend
@@ -141,11 +142,32 @@ jobs:
               --query 'Reservations[*].Instances[*].PublicIpAddress' \
               --filters "Name=tag:Name,Values=udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --output text)
+
             echo ${BACKEND_IP} >> .circleci/ansible/inventory.txt
       - persist_to_workspace:
           root: .circleci/ansible
           paths:
             - inventory.txt
+      - destroy-environment
+  configure-infrastructure:
+    docker:
+      - image: python:3.7-alpine3.11
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints: ["b0:48:09:34:9a:d7:d0:5e:c3:62:6b:e2:03:c6:41:2f"] # You can get this ID in the section where you registered the SSH Key
+      - attach_workspace:
+          at: /tmp/.circleci/ansible
+      - run:
+          name: Install dependencies
+          command: |
+            pip install awscli
+            apk add --update ansible
+      - run:
+          name: Configure server
+          command: |
+            export ANSIBLE_HOST_KEY_CHECKING=False
+            ansible-playbook -i /tmp/.circleci/ansible/inventory.txt .circleci/ansible/configure-server.yml
       - destroy-environment
 workflows:
   default:
