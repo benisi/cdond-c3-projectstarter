@@ -6,7 +6,7 @@ orbs:
 
 commands:
   destroy-environment:
-    description: Destroy all created environments
+    description: Destroy environments for deployment ${CIRCLE_WORKFLOW_ID:0:7}
     steps:
       - run:
           name: Destroy frontend
@@ -313,6 +313,38 @@ jobs:
           command: |
             echo $(curl --insecure https://kvdb.io/2nRvBtd3g1UAAyp4Enr5ZU/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-BackendIP) >> .circleci/ansible/inventory.txt
             ansible-playbook -i .circleci/ansible/inventory.txt .circleci/ansible/deploy-backend.yml
+      - destroy-environment
+      - revert-migrations
+  smoke-test:
+    docker:
+      - image: python:3.7-alpine3.11
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update curl
+            pip install awscli
+      - run:
+          name: Backend smoke test.
+          command: |
+            export BACKEND_IP=$(curl --insecure https://kvdb.io/2nRvBtd3g1UAAyp4Enr5ZU/UdaPeople-${CIRCLE_WORKFLOW_ID:0:7}-BackendIP)
+            echo BACKEND_URL: http://${BACKEND_IP}:3030/api/status
+            if curl -s http://${BACKEND_IP}:3030/api/status | grep "ok"
+            then
+              return 0
+            else
+              return 1
+            fi
+      - run:
+          name: Frontend smoke test.
+          command: |
+            if curl -s http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-east-1.amazonaws.com/ | grep "Welcome"
+            then
+              return 1
+            else
+              return 1
+            fi
       - destroy-environment
       - revert-migrations
 workflows:
