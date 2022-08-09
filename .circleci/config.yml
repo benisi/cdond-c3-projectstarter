@@ -337,7 +337,7 @@ jobs:
           command: |
             if curl -s http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-east-1.amazonaws.com/ | grep "Welcome"
             then
-              return 1
+              return 0
             else
               return 1
             fi
