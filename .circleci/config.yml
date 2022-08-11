@@ -355,7 +355,7 @@ jobs:
               WORKFLOW_ID=$(curl --insecure https://kvdb.io/2nRvBtd3g1UAAyp4Enr5ZU/UdaPeople-cloudfront-WORKFLOW_ID)
               aws cloudformation update-stack \
               --use-previous-template \
-              --stack-name udapeople-cloudfront \
+              --stack-name InitialStack \
               --parameters ParameterKey=WorkflowID,ParameterValue=${WORKFLOW_ID},UsePreviousValue=false
       - destroy-environment
       - revert-migrations
