@@ -351,7 +351,7 @@ jobs:
       - run:
           name: Update cloudfront distribution
           command: |
-            aws cloudformation deploy \
+            aws cloudformation update-stack \
               --use-previous-template \
               --stack-name udapeople-cloudfront \
               --parameters ParameterKey=WorkflowID,ParameterValue=${CIRCLE_WORKFLOW_ID:0:7},UsePreviousValue=false
