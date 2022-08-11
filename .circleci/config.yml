@@ -357,7 +357,6 @@ jobs:
               --template-file .circleci/files/cloudfront.yml \
               --stack-name InitialStack \
               --parameter-overrides WorkflowID=${WORKFLOW_ID} \
-              --parameter-overrides UsePreviousValue=false
       - destroy-environment
       - revert-migrations
   cleanup:
